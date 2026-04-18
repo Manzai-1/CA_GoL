@@ -6,7 +6,7 @@
 #include <stdbool.h>
 
 #define HEIGHT 1024
-#define WIDTH 1024
+#define WIDTH 2048
 
 typedef struct {
     char alive; // 0 dead && 1 alive
@@ -149,7 +149,7 @@ bool init_grid(cell **grid, cell **temp_grid)
         {
             int value = rand() % 3;
             CELL(*grid, i, j).alive = (value == 0);
-            CELL(*grid, i, j).state = 1;
+            CELL(*grid, i, j).state = (CELL(*grid, i, j).alive) ? 0 : 1;
         }
     }
 
