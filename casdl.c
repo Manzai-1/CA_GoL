@@ -5,8 +5,8 @@
 #include <time.h>
 #include <stdbool.h>
 
-#define HEIGHT 256
-#define WIDTH 256
+#define HEIGHT 1024
+#define WIDTH 1024
 
 typedef struct {
     char alive; // 0 dead && 1 alive
@@ -41,90 +41,27 @@ typedef struct {
 cell calculate_cell(int sum, cell c);
 argbt calculate_argb(cell c);
 void update_render_area(int event_y, int event_x, ViewState *view, InputState *input);
+bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
+bool init_sim(cell **grid, cell **temp_grid);
 
 #define CELL(grid, row, col) (grid)[(row) * WIDTH + (col)]
 
 int main()
 {
-    // ----------------------------------- INIT GRAPHICS
-
-    if (SDL_Init(SDL_INIT_VIDEO) != 0) 
-    {
-        fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
-        return 1;
-    }
 
     SDL_Window *win = NULL;
     SDL_Renderer *rend = NULL;
     SDL_Texture *texture = NULL;
+    cell *grid = NULL;
+    cell *temp_grid = NULL;
 
-    //define
-    win = SDL_CreateWindow("CA-SDL GoL", 
-                SDL_WINDOWPOS_CENTERED, 
-                SDL_WINDOWPOS_CENTERED, 
-                WIDTH, HEIGHT, 
-                SDL_WINDOW_SHOWN);
+    if(!init_sdl(&win, &rend, &texture)) return 1;
+    if(!init_sim(&grid, &temp_grid)) return 1;
 
-    if (win == NULL)
-    {
-        printf("Unable to create window.\n");
-        return 1;
-    }
-
-    rend = SDL_CreateRenderer(win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
-
-    if (rend == NULL)
-    {
-        printf("Unable to create renderer.\n");
-        return 1;
-    }
-  
-    texture = SDL_CreateTexture(rend, 
-                    SDL_PIXELFORMAT_ARGB8888, 
-                    SDL_TEXTUREACCESS_STREAMING, 
-                    WIDTH, 
-                    HEIGHT);
-
-    if (texture == NULL)
-    {
-        printf("Unable to create texture.\n");
-        return 1;
-    }
-
-
-
-    // ----------------------------------- INIT CA 
-
-    cell *grid = malloc(HEIGHT * WIDTH * sizeof(cell));
-    if(grid == NULL)
-    {
-        fprintf(stderr, "Failed to allocate grid.\n");
-        return 1;
-    }
-    cell *temp_grid = malloc(HEIGHT * WIDTH * sizeof(cell));
-    if(temp_grid == NULL)
-    {
-        fprintf(stderr, "Failed to allocate temp_grid.\n");
-        free(grid);
-        return 1;
-    }
     ViewState view = {1, 0, 0};
     InputState input = {0, 0, 0};
     SimState sim = {100, 0, true};
 
-    // initialize grid to random 0 / 1
-    srand(time(0));
-    for (int i = 0; i < HEIGHT; i++)
-    {
-        for (int j = 0; j < WIDTH; j++)
-        {
-            int value = rand() % 3;
-            if (value == 0)
-                CELL(grid, i, j).alive = 1;
-            else
-                CELL(grid, i, j).alive = 0;
-        }
-    }
 
     SDL_Event ev;
 
@@ -269,6 +206,79 @@ int main()
     return 0;
 }
 
+bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture)
+{
+    if (SDL_Init(SDL_INIT_VIDEO) != 0) 
+    {
+        fprintf(stderr, "SDL failed to initialise: %s\n", SDL_GetError());
+        return false;
+    }
+
+    *win = SDL_CreateWindow("CA-SDL GoL", 
+        SDL_WINDOWPOS_CENTERED, 
+        SDL_WINDOWPOS_CENTERED, 
+        WIDTH, HEIGHT, 
+        SDL_WINDOW_SHOWN);
+
+    if (*win == NULL)
+    {
+        fprintf(stderr,"Unable to create window.\n");
+        return false;
+    }
+
+    *rend = SDL_CreateRenderer(*win, -1, SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+
+    if (*rend == NULL)
+    {
+        fprintf(stderr,"Unable to create renderer.\n");
+        return false;
+    }
+
+    *texture = SDL_CreateTexture(*rend, 
+                SDL_PIXELFORMAT_ARGB8888, 
+                SDL_TEXTUREACCESS_STREAMING, 
+                WIDTH, 
+                HEIGHT);
+
+    if (*texture == NULL)
+    {
+        fprintf(stderr,"Unable to create texture.\n");
+        return false;
+    }
+
+    return true;
+}
+
+bool init_sim(cell **grid, cell **temp_grid)
+{
+    *grid = malloc(HEIGHT * WIDTH * sizeof(cell));
+    if(*grid == NULL)
+    {
+        fprintf(stderr, "Failed to allocate grid.\n");
+        return false;
+    }
+
+    *temp_grid = malloc(HEIGHT * WIDTH * sizeof(cell));
+    if(*temp_grid == NULL)
+    {
+        fprintf(stderr, "Failed to allocate temp_grid.\n");
+        free(*grid);
+        return false;
+    }
+
+    srand(time(0));
+    for (int i = 0; i < HEIGHT; i++)
+    {
+        for (int j = 0; j < WIDTH; j++)
+        {
+            int value = rand() % 3;
+            CELL(*grid, i, j).alive = (value == 0);
+            CELL(*grid, i, j).state = 1;
+        }
+    }
+
+    return true;
+}
 
 cell calculate_cell(int sum, cell c)
 {
