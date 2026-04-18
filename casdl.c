@@ -40,7 +40,7 @@ typedef struct {
 
 cell calculate_cell(int sum, cell c);
 argbt calculate_argb(cell c);
-void update_render_area(int event_y, int event_x, ViewState *view, InputState *input);
+void pan_view(int event_y, int event_x, ViewState *view, InputState *input);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *input);
@@ -77,6 +77,7 @@ int main()
         sim.generations++;
     }
 
+    printf("Generations: %i\n", sim.generations);
     cleanup(grid, temp_grid, win, rend, texture);
     return 0;
 }
@@ -179,7 +180,7 @@ void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *in
         }
         else if (ev->type == SDL_MOUSEMOTION && input->mouse_held) 
         {
-            update_render_area(ev->motion.y, ev->motion.x, view, input);
+            pan_view(ev->motion.y, ev->motion.x, view, input);
         }
         else if (ev->type == SDL_MOUSEWHEEL)
         {
@@ -193,7 +194,7 @@ void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *in
             }
             
             // position render area around scroll position
-            update_render_area(ev->wheel.y, ev->wheel.x, view, input);
+            pan_view(ev->wheel.y, ev->wheel.x, view, input);
         }
         else if (ev->type == SDL_KEYUP)
         {
@@ -240,7 +241,6 @@ void update_grid(cell *grid, cell *temp_grid)
         }
     }
 
-    // ----------------------------------- copy over next generation to current grid
     memcpy(grid, temp_grid, HEIGHT * WIDTH * sizeof(cell));
 }
 
@@ -354,7 +354,7 @@ argbt calculate_argb(cell c)
     return argb;
 }
 
-void update_render_area(int event_y, int event_x, ViewState *view, InputState *input)
+void pan_view(int event_y, int event_x, ViewState *view, InputState *input)
 {
     int new_y = view->grid_pos_y;
     int new_x = view->grid_pos_x;
