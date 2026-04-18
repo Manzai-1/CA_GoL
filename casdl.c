@@ -44,6 +44,8 @@ void update_render_area(int event_y, int event_x, ViewState *view, InputState *i
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *input);
+void update_grid(cell *grid, cell *temp_grid);
+
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend, SDL_Texture *texture);
 
 #define CELL(grid, row, col) (grid)[(row) * WIDTH + (col)]
@@ -70,38 +72,8 @@ int main()
     // game loop
     while(sim.running)
     {
-        // while event quee is not empty
         process_input(&ev, &view, &sim, &input);
-
-        // ----------------------------------- calculate next generation into temp grid
-        // loop through grid and add value to temp grid based on grid neighborhood
-        for (int i = 0; i < HEIGHT; i++)
-        {
-            for (int j = 0; j < WIDTH; j++)
-            {
-                // will contain neighboring values
-                int neighborhood_sum = 0;
-
-                // gather neighborhood values
-                for (int k = i - 1; k <= i + 1; k++)
-                {
-                    for (int z = j - 1; z <= j + 1; z++)
-                    {
-                        if (k >= 0 && k < HEIGHT && z >= 0 && z < WIDTH)
-                        {
-                            neighborhood_sum += CELL(grid, k, z).alive;
-                        }
-                    }
-                }
-
-                // calculate cell value based on rules
-                neighborhood_sum -= CELL(grid, i, j).alive;
-                CELL(temp_grid, i, j) = calculate_cell(neighborhood_sum, CELL(grid, i, j));
-            }
-        }
-
-        // ----------------------------------- copy over next generation to current grid
-        memcpy(grid, temp_grid, HEIGHT * WIDTH * sizeof(cell));
+        update_grid(grid, temp_grid);
 
         // ----------------------------------- display current grid 
         // pixels
@@ -279,6 +251,37 @@ void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *in
             }
         }
     }
+}
+
+void update_grid(cell *grid, cell *temp_grid)
+{
+    for (int i = 0; i < HEIGHT; i++)
+    {
+        for (int j = 0; j < WIDTH; j++)
+        {
+            // will contain neighboring values
+            int neighborhood_sum = 0;
+
+            // gather neighborhood values
+            for (int k = i - 1; k <= i + 1; k++)
+            {
+                for (int z = j - 1; z <= j + 1; z++)
+                {
+                    if (k >= 0 && k < HEIGHT && z >= 0 && z < WIDTH)
+                    {
+                        neighborhood_sum += CELL(grid, k, z).alive;
+                    }
+                }
+            }
+
+            // calculate cell value based on rules
+            neighborhood_sum -= CELL(grid, i, j).alive;
+            CELL(temp_grid, i, j) = calculate_cell(neighborhood_sum, CELL(grid, i, j));
+        }
+    }
+
+    // ----------------------------------- copy over next generation to current grid
+    memcpy(grid, temp_grid, HEIGHT * WIDTH * sizeof(cell));
 }
 
 cell calculate_cell(int sum, cell c)
