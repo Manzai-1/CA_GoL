@@ -45,7 +45,7 @@ bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *input);
 void update_grid(cell *grid, cell *temp_grid);
-
+void render_grid(cell *grid, SDL_Renderer *rend, SDL_Texture *texture, ViewState *view);
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend, SDL_Texture *texture);
 
 #define CELL(grid, row, col) (grid)[(row) * WIDTH + (col)]
@@ -65,53 +65,13 @@ int main()
     ViewState view = {1, 0, 0};
     InputState input = {0, 0, 0};
     SimState sim = {100, 0, true};
-
-
     SDL_Event ev;
 
-    // game loop
     while(sim.running)
     {
         process_input(&ev, &view, &sim, &input);
         update_grid(grid, temp_grid);
-
-        // ----------------------------------- display current grid 
-        // pixels
-        uint32_t *pixels;
-        int pitch = WIDTH * 4;
-
-        // stores initial and previous row/col/argb to avoid redundant calls when zoomed in
-        int last_row = 0;
-        int last_col = 0;
-        argbt argb = calculate_argb(CELL(grid, view.grid_pos_y, view.grid_pos_x));
-        
-        SDL_LockTexture(texture, NULL, (void **)&pixels, &pitch);
-
-        for (int i = 0; i < HEIGHT * WIDTH; i++)
-        {
-            int row_index = i / WIDTH;
-            int col_index = i % WIDTH;
-
-            int row = view.grid_pos_y + (row_index / view.zoom);
-            int col = view.grid_pos_x + (col_index / view.zoom);
-
-            //only calculate argb if its a new grid index, otherwise use previous values
-            if (row != last_row || col != last_col)
-            {
-                argb = calculate_argb(CELL(grid, row, col));
-                last_row = row;
-                last_col = col;
-            }
-
-            // bit shift uint8_t argb values into uint32_t pixel
-            *(pixels + i) = (argb.alpha << 24) + (argb.red << 16) + (argb.green << 8) + argb.blue;
-        }
-        
-        SDL_UnlockTexture(texture);
-        
-        SDL_RenderClear(rend);
-        SDL_RenderCopy(rend, texture, NULL, NULL);
-        SDL_RenderPresent(rend);
+        render_grid(grid, rend, texture, &view);
     
         SDL_Delay(sim.refresh_rate_ms);
         sim.generations++;
@@ -282,6 +242,45 @@ void update_grid(cell *grid, cell *temp_grid)
 
     // ----------------------------------- copy over next generation to current grid
     memcpy(grid, temp_grid, HEIGHT * WIDTH * sizeof(cell));
+}
+
+void render_grid(cell *grid, SDL_Renderer *rend, SDL_Texture *texture, ViewState *view)
+{
+    uint32_t *pixels;
+    int pitch = WIDTH * 4;
+
+    // stores initial and previous row/col/argb to avoid redundant calls when zoomed in
+    int last_row = 0;
+    int last_col = 0;
+    argbt argb = calculate_argb(CELL(grid, view->grid_pos_y, view->grid_pos_x));
+    
+    SDL_LockTexture(texture, NULL, (void **)&pixels, &pitch);
+
+    for (int i = 0; i < HEIGHT * WIDTH; i++)
+    {
+        int row_index = i / WIDTH;
+        int col_index = i % WIDTH;
+
+        int row = view->grid_pos_y + (row_index / view->zoom);
+        int col = view->grid_pos_x + (col_index / view->zoom);
+
+        //only calculate argb if its a new grid index, otherwise use previous values
+        if (row != last_row || col != last_col)
+        {
+            argb = calculate_argb(CELL(grid, row, col));
+            last_row = row;
+            last_col = col;
+        }
+
+        // bit shift uint8_t argb values into uint32_t pixel
+        *(pixels + i) = (argb.alpha << 24) + (argb.red << 16) + (argb.green << 8) + argb.blue;
+    }
+    
+    SDL_UnlockTexture(texture);
+    
+    SDL_RenderClear(rend);
+    SDL_RenderCopy(rend, texture, NULL, NULL);
+    SDL_RenderPresent(rend);
 }
 
 cell calculate_cell(int sum, cell c)
