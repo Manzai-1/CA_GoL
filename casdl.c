@@ -1,6 +1,7 @@
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 
 
@@ -205,15 +206,8 @@ int main()
             }
         }
 
-        // ----------------------------------- copy over next generation to current grid 
-        // make faster with memcopy?? 
-        for (int i = 0; i < HEIGHT; i++)
-        {
-            for (int j = 0; j < WIDTH; j++)
-            {
-                CELL(grid, i, j) = CELL(temp_grid, i, j);
-            }
-        }
+        // ----------------------------------- copy over next generation to current grid
+        memcpy(grid, temp_grid, HEIGHT * WIDTH * sizeof(cell));
 
         // ----------------------------------- display current grid 
         // pixels
