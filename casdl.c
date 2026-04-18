@@ -3,24 +3,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <stdbool.h>
 
 #define HEIGHT 256
 #define WIDTH 256
-
-
-// zoom variables, default 1 cell rendered as 1px 
-int zoom = 1;
-int grid_pos_y = 0;
-int grid_pos_x = 0;
-
-// user input variables
-char mouse = 0;
-int mouse_pos_y = 0;
-int mouse_pos_x = 0;
-int delay = 100;
-
-
 
 typedef struct {
     char alive; // 0 dead && 1 alive
@@ -34,9 +20,27 @@ typedef struct {
     uint8_t blue;
 } argbt;
 
+typedef struct {
+    int zoom;
+    int grid_pos_y;
+    int grid_pos_x;
+} ViewState;
+
+typedef struct {
+    bool mouse_held;
+    int mouse_pos_y;
+    int mouse_pos_x;
+} InputState;
+
+typedef struct {
+    int refresh_rate_ms;
+    int generations;
+    bool running;
+} SimState;
+
 cell calculate_cell(int sum, cell c);
 argbt calculate_argb(cell c);
-void update_render_area(int event_y, int event_x);
+void update_render_area(int event_y, int event_x, ViewState *view, InputState *input);
 
 #define CELL(grid, row, col) (grid)[(row) * WIDTH + (col)]
 
@@ -92,8 +96,21 @@ int main()
     // ----------------------------------- INIT CA 
 
     cell *grid = malloc(HEIGHT * WIDTH * sizeof(cell));
+    if(grid == NULL)
+    {
+        fprintf(stderr, "Failed to allocate grid.\n");
+        return 1;
+    }
     cell *temp_grid = malloc(HEIGHT * WIDTH * sizeof(cell));
-    int generations = 0;
+    if(temp_grid == NULL)
+    {
+        fprintf(stderr, "Failed to allocate temp_grid.\n");
+        free(grid);
+        return 1;
+    }
+    ViewState view = {1, 0, 0};
+    InputState input = {0, 0, 0};
+    SimState sim = {100, 0, true};
 
     // initialize grid to random 0 / 1
     srand(time(0));
@@ -109,12 +126,10 @@ int main()
         }
     }
 
-
-    int running = 1;
     SDL_Event ev;
 
     // game loop
-    while(running == 1)
+    while(sim.running)
     {
         // while event quee is not empty
         while (SDL_PollEvent(&ev) != 0)
@@ -125,55 +140,52 @@ int main()
                 SDL_DestroyTexture(texture);
                 SDL_DestroyRenderer(rend);
                 SDL_DestroyWindow(win);
-                running = 0;
-                SDL_Quit();
-                printf("\nGenerations: %i\n", generations);
-                return 0;
+                sim.running = false;
             }
             else if (ev.type == SDL_MOUSEBUTTONDOWN)
             {
                 // activate mouse_control
-                mouse = 1;
+                input.mouse_held = true;
 
                 // store x / y position
-                mouse_pos_x = ev.button.x;
-                mouse_pos_y = ev.button.y;
+                input.mouse_pos_x = ev.button.x;
+                input.mouse_pos_y = ev.button.y;
             }
             else if (ev.type == SDL_MOUSEBUTTONUP)
             {
                 // de-activate mouse_control
-                mouse = 0;
+                input.mouse_held = false;
             }
-            else if (ev.type == SDL_MOUSEMOTION && mouse == 1) 
+            else if (ev.type == SDL_MOUSEMOTION && input.mouse_held) 
             {
-                update_render_area(ev.motion.y, ev.motion.x);
+                update_render_area(ev.motion.y, ev.motion.x, &view, &input);
             }
             else if (ev.type == SDL_MOUSEWHEEL)
             {
                 // get direction and update zoom accordingly 
-                zoom += ev.wheel.y;
-                if (zoom < 1)
-                    zoom = 1;
-                if (zoom > HEIGHT / 4)
+                view.zoom += ev.wheel.y;
+                if (view.zoom < 1)
+                    view.zoom = 1;
+                if (view.zoom > HEIGHT / 4)
                 {
-                    zoom = HEIGHT / 4;
+                    view.zoom = HEIGHT / 4;
                 }
                 
                 // position render area around scroll position
-                update_render_area(ev.wheel.y, ev.wheel.x);
+                update_render_area(ev.wheel.y, ev.wheel.x, &view, &input);
             }
             else if (ev.type == SDL_KEYUP)
             {
                 // if key = arrow up / arrow down, adjust delay value 
                 if (ev.key.keysym.scancode == SDL_SCANCODE_UP)
                 {
-                    delay += 10;
+                    sim.refresh_rate_ms += 10;
                 }
                 else if (ev.key.keysym.scancode == SDL_SCANCODE_DOWN)
                 {
-                    if (delay > 10)
+                    if (sim.refresh_rate_ms > 10)
                     {
-                        delay -= 10;
+                        sim.refresh_rate_ms -= 10;
                     }
                 }
             }
@@ -217,7 +229,7 @@ int main()
         // stores initial and previous row/col/argb to avoid redundant calls when zoomed in
         int last_row = 0;
         int last_col = 0;
-        argbt argb = calculate_argb(CELL(grid, grid_pos_y, grid_pos_x));
+        argbt argb = calculate_argb(CELL(grid, view.grid_pos_y, view.grid_pos_x));
         
         SDL_LockTexture(texture, NULL, (void **)&pixels, &pitch);
 
@@ -226,8 +238,8 @@ int main()
             int row_index = i / WIDTH;
             int col_index = i % WIDTH;
 
-            int row = grid_pos_y + (row_index / zoom);
-            int col = grid_pos_x + (col_index / zoom);
+            int row = view.grid_pos_y + (row_index / view.zoom);
+            int col = view.grid_pos_x + (col_index / view.zoom);
 
             //only calculate argb if its a new grid index, otherwise use previous values
             if (row != last_row || col != last_col)
@@ -247,14 +259,13 @@ int main()
         SDL_RenderCopy(rend, texture, NULL, NULL);
         SDL_RenderPresent(rend);
     
-        SDL_Delay(delay);
-        generations++;
+        SDL_Delay(sim.refresh_rate_ms);
+        sim.generations++;
     }
 
     SDL_Quit();
     free(grid);
     free(temp_grid);
-    printf("Memory freed\n");
     return 0;
 }
 
@@ -330,22 +341,22 @@ argbt calculate_argb(cell c)
     return argb;
 }
 
-void update_render_area(int event_y, int event_x)
+void update_render_area(int event_y, int event_x, ViewState *view, InputState *input)
 {
-    int new_y = grid_pos_y;
-    int new_x = grid_pos_x;
+    int new_y = view->grid_pos_y;
+    int new_x = view->grid_pos_x;
 
-    new_y += (event_y - mouse_pos_y);
-    new_x += (event_x - mouse_pos_x);
+    new_y += (event_y - input->mouse_pos_y);
+    new_x += (event_x - input->mouse_pos_x);
 
-    if (new_y >= 0 && (new_y + (HEIGHT / zoom)) <= HEIGHT ) // CAP rendering area at HEIGHT
+    if (new_y >= 0 && (new_y + (HEIGHT / view->zoom)) <= HEIGHT ) // CAP rendering area at HEIGHT
     {
-        grid_pos_y = new_y;
-        mouse_pos_y = event_y;
+        view->grid_pos_y = new_y;
+        input->mouse_pos_y = event_y;
     }
-    if (new_x >= 0 && (new_x + (WIDTH / zoom))<= WIDTH - 1) // CAP rendering area at WIDTH
+    if (new_x >= 0 && (new_x + (WIDTH / view->zoom))<= WIDTH - 1) // CAP rendering area at WIDTH
     {
-        grid_pos_x = new_x;
-        mouse_pos_x = event_x;
+        view->grid_pos_x = new_x;
+        input->mouse_pos_x = event_x;
     }
 }
