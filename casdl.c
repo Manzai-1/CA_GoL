@@ -42,7 +42,9 @@ cell calculate_cell(int sum, cell c);
 argbt calculate_argb(cell c);
 void update_render_area(int event_y, int event_x, ViewState *view, InputState *input);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
-bool init_sim(cell **grid, cell **temp_grid);
+bool init_grid(cell **grid, cell **temp_grid);
+void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *input);
+void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend, SDL_Texture *texture);
 
 #define CELL(grid, row, col) (grid)[(row) * WIDTH + (col)]
 
@@ -56,7 +58,7 @@ int main()
     cell *temp_grid = NULL;
 
     if(!init_sdl(&win, &rend, &texture)) return 1;
-    if(!init_sim(&grid, &temp_grid)) return 1;
+    if(!init_grid(&grid, &temp_grid)) return 1;
 
     ViewState view = {1, 0, 0};
     InputState input = {0, 0, 0};
@@ -69,64 +71,7 @@ int main()
     while(sim.running)
     {
         // while event quee is not empty
-        while (SDL_PollEvent(&ev) != 0)
-        {
-            if (ev.type == SDL_QUIT)
-            {
-                // ----------------------------------- release resources
-                SDL_DestroyTexture(texture);
-                SDL_DestroyRenderer(rend);
-                SDL_DestroyWindow(win);
-                sim.running = false;
-            }
-            else if (ev.type == SDL_MOUSEBUTTONDOWN)
-            {
-                // activate mouse_control
-                input.mouse_held = true;
-
-                // store x / y position
-                input.mouse_pos_x = ev.button.x;
-                input.mouse_pos_y = ev.button.y;
-            }
-            else if (ev.type == SDL_MOUSEBUTTONUP)
-            {
-                // de-activate mouse_control
-                input.mouse_held = false;
-            }
-            else if (ev.type == SDL_MOUSEMOTION && input.mouse_held) 
-            {
-                update_render_area(ev.motion.y, ev.motion.x, &view, &input);
-            }
-            else if (ev.type == SDL_MOUSEWHEEL)
-            {
-                // get direction and update zoom accordingly 
-                view.zoom += ev.wheel.y;
-                if (view.zoom < 1)
-                    view.zoom = 1;
-                if (view.zoom > HEIGHT / 4)
-                {
-                    view.zoom = HEIGHT / 4;
-                }
-                
-                // position render area around scroll position
-                update_render_area(ev.wheel.y, ev.wheel.x, &view, &input);
-            }
-            else if (ev.type == SDL_KEYUP)
-            {
-                // if key = arrow up / arrow down, adjust delay value 
-                if (ev.key.keysym.scancode == SDL_SCANCODE_UP)
-                {
-                    sim.refresh_rate_ms += 10;
-                }
-                else if (ev.key.keysym.scancode == SDL_SCANCODE_DOWN)
-                {
-                    if (sim.refresh_rate_ms > 10)
-                    {
-                        sim.refresh_rate_ms -= 10;
-                    }
-                }
-            }
-        }
+        process_input(&ev, &view, &sim, &input);
 
         // ----------------------------------- calculate next generation into temp grid
         // loop through grid and add value to temp grid based on grid neighborhood
@@ -200,9 +145,7 @@ int main()
         sim.generations++;
     }
 
-    SDL_Quit();
-    free(grid);
-    free(temp_grid);
+    cleanup(grid, temp_grid, win, rend, texture);
     return 0;
 }
 
@@ -249,7 +192,7 @@ bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture)
     return true;
 }
 
-bool init_sim(cell **grid, cell **temp_grid)
+bool init_grid(cell **grid, cell **temp_grid)
 {
     *grid = malloc(HEIGHT * WIDTH * sizeof(cell));
     if(*grid == NULL)
@@ -278,6 +221,64 @@ bool init_sim(cell **grid, cell **temp_grid)
     }
 
     return true;
+}
+
+void process_input(SDL_Event *ev, ViewState *view, SimState *sim, InputState *input)
+{
+    while (SDL_PollEvent(ev) != 0)
+    {
+        if (ev->type == SDL_QUIT)
+        {
+            sim->running = false;
+        }
+        else if (ev->type == SDL_MOUSEBUTTONDOWN)
+        {
+            // activate mouse_control
+            input->mouse_held = true;
+
+            // store x / y position
+            input->mouse_pos_x = ev->button.x;
+            input->mouse_pos_y = ev->button.y;
+        }
+        else if (ev->type == SDL_MOUSEBUTTONUP)
+        {
+            // de-activate mouse_control
+            input->mouse_held = false;
+        }
+        else if (ev->type == SDL_MOUSEMOTION && input->mouse_held) 
+        {
+            update_render_area(ev->motion.y, ev->motion.x, view, input);
+        }
+        else if (ev->type == SDL_MOUSEWHEEL)
+        {
+            // get direction and update zoom accordingly 
+            view->zoom += ev->wheel.y;
+            if (view->zoom < 1)
+                view->zoom = 1;
+            if (view->zoom > HEIGHT / 4)
+            {
+                view->zoom = HEIGHT / 4;
+            }
+            
+            // position render area around scroll position
+            update_render_area(ev->wheel.y, ev->wheel.x, view, input);
+        }
+        else if (ev->type == SDL_KEYUP)
+        {
+            // if key = arrow up / arrow down, adjust delay value 
+            if (ev->key.keysym.scancode == SDL_SCANCODE_UP)
+            {
+                sim->refresh_rate_ms += 10;
+            }
+            else if (ev->key.keysym.scancode == SDL_SCANCODE_DOWN)
+            {
+                if (sim->refresh_rate_ms > 10)
+                {
+                    sim->refresh_rate_ms -= 10;
+                }
+            }
+        }
+    }
 }
 
 cell calculate_cell(int sum, cell c)
@@ -369,4 +370,14 @@ void update_render_area(int event_y, int event_x, ViewState *view, InputState *i
         view->grid_pos_x = new_x;
         input->mouse_pos_x = event_x;
     }
+}
+
+void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend, SDL_Texture *texture)
+{
+    SDL_DestroyTexture(texture);
+    SDL_DestroyRenderer(rend);
+    SDL_DestroyWindow(win);
+    SDL_Quit();
+    free(grid);
+    free(temp_grid);
 }
