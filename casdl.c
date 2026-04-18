@@ -1,14 +1,3 @@
-// Inspiration Source SDL Texture Rendering from user Sanette on https://discourse.libsdl.org/t/question-creating-an-sdl-texture-from-an-array/38530/6
-// SDL2: https://wiki.libsdl.org/
-
-// Compile: gcc casdl.c -lSDL2main -lSDL2 -o test.out
-
-// ToDo: 
-//          DONE    Add alive / state to differentiate coloring of pixels 
-//                  Increase speed with memcopy, copying rows instead of cells 
-//          Add complexity by adding color gradient based on neighborhood size
-//          Add complexity by changing algorithm so clusters seek other clusters and move towards each other
-
 #include <SDL2/SDL.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -140,7 +129,7 @@ int main()
                 SDL_DestroyRenderer(rend);
                 SDL_DestroyWindow(win);
                 running = 0;
-                SDL_Quit;
+                SDL_Quit();
                 printf("\nGenerations: %i\n", generations);
                 return 0;
             }
@@ -272,7 +261,7 @@ int main()
         generations++;
     }
 
-    SDL_Quit;
+    SDL_Quit();
     return 0;
 }
 
