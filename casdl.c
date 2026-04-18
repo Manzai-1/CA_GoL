@@ -192,7 +192,7 @@ int main()
                 {
                     for (int z = j - 1; z <= j + 1; z++)
                     {
-                        if (k > 0 && k < HEIGHT && z > 0 && z < WIDTH)
+                        if (k >= 0 && k < HEIGHT && z >= 0 && z < WIDTH)
                         {
                             neighborhood_sum += CELL(grid, k, z).alive;
                         }
