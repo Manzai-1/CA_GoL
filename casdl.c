@@ -4,8 +4,8 @@
 #include <time.h>
 
 
-#define HEIGHT 1000
-#define WIDTH 2000
+#define HEIGHT 256
+#define WIDTH 256
 
 
 // zoom variables, default 1 cell rendered as 1px 
@@ -21,27 +21,23 @@ int delay = 100;
 
 
 
-typedef struct 
-{
+typedef struct {
     char alive; // 0 dead && 1 alive
     char state; // 0 born && 1 stasis && 2 death
-}
-cell;
+} cell;
 
-typedef struct 
-{
+typedef struct {
     uint8_t alpha;
     uint8_t red;
     uint8_t green;
     uint8_t blue;
-}
-argbt;
+} argbt;
 
 cell calculate_cell(int sum, cell c);
 argbt calculate_argb(cell c);
 void update_render_area(int event_y, int event_x);
 
-
+#define CELL(grid, row, col) (grid)[(row) * WIDTH + (col)]
 
 int main()
 {
@@ -94,8 +90,8 @@ int main()
 
     // ----------------------------------- INIT CA 
 
-    cell grid[HEIGHT][WIDTH];
-    cell temp_grid[HEIGHT][WIDTH];
+    cell *grid = malloc(HEIGHT * WIDTH * sizeof(cell));
+    cell *temp_grid = malloc(HEIGHT * WIDTH * sizeof(cell));
     int generations = 0;
 
     // initialize grid to random 0 / 1
@@ -106,9 +102,9 @@ int main()
         {
             int value = rand() % 3;
             if (value == 0)
-                grid[i][j].alive = 1;
+                CELL(grid, i, j).alive = 1;
             else
-                grid[i][j].alive = 0;
+                CELL(grid, i, j).alive = 0;
         }
     }
 
@@ -198,14 +194,14 @@ int main()
                     {
                         if (k > 0 && k < HEIGHT && z > 0 && z < WIDTH)
                         {
-                            neighborhood_sum += grid[k][z].alive;
+                            neighborhood_sum += CELL(grid, k, z).alive;
                         }
                     }
                 }
 
                 // calculate cell value based on rules
-                neighborhood_sum -= grid[i][j].alive;
-                temp_grid[i][j] = calculate_cell(neighborhood_sum, grid[i][j]);
+                neighborhood_sum -= CELL(grid, i, j).alive;
+                CELL(temp_grid, i, j) = calculate_cell(neighborhood_sum, CELL(grid, i, j));
             }
         }
 
@@ -215,7 +211,7 @@ int main()
         {
             for (int j = 0; j < WIDTH; j++)
             {
-                grid[i][j] = temp_grid[i][j];
+                CELL(grid, i, j) = CELL(temp_grid, i, j);
             }
         }
 
@@ -227,7 +223,7 @@ int main()
         // stores initial and previous row/col/argb to avoid redundant calls when zoomed in
         int last_row = 0;
         int last_col = 0;
-        argbt argb = calculate_argb(grid[grid_pos_y][grid_pos_x]);
+        argbt argb = calculate_argb(CELL(grid, grid_pos_y, grid_pos_x));
         
         SDL_LockTexture(texture, NULL, (void **)&pixels, &pitch);
 
@@ -242,7 +238,7 @@ int main()
             //only calculate argb if its a new grid index, otherwise use previous values
             if (row != last_row || col != last_col)
             {
-                argb = calculate_argb(grid[row][col]);
+                argb = calculate_argb(CELL(grid, row, col));
                 last_row = row;
                 last_col = col;
             }
@@ -262,6 +258,9 @@ int main()
     }
 
     SDL_Quit();
+    free(grid);
+    free(temp_grid);
+    printf("Memory freed\n");
     return 0;
 }
 
