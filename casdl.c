@@ -4,11 +4,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
-
+#include <emscripten.h>
 #include "config.h"
 
 typedef struct {
-    char alive;  // 0 dead && 1 alive
+    char alive;
     CellState state;
 } cell;
 
@@ -27,12 +27,25 @@ typedef struct {
 typedef struct {
     int refresh_rate_ms;
     int generations;
-    bool running;
+    bool paused;
 } SimState;
 
-static const uint32_t CELL_COLORS[] = {[CELL_STATE_BIRTH] = COLOR_BIRTH,
-                                       [CELL_STATE_STASIS] = COLOR_STASIS,
-                                       [CELL_STATE_DEATH] = COLOR_DEATH,
+typedef struct {
+    ViewState view;
+    SimState sim;
+    InputState input;
+    cell *grid;
+    cell *temp_grid;
+    SDL_Window *win;
+    SDL_Renderer *rend;
+    SDL_Texture *texture;
+    uint32_t last_tick;
+    uint32_t time_accumulator;
+} AppState;
+
+static const uint32_t CELL_COLORS[] = {[CELL_STATE_BIRTH]   = COLOR_BIRTH,
+                                       [CELL_STATE_STASIS]  = COLOR_STASIS,
+                                       [CELL_STATE_DEATH]   = COLOR_DEATH,
                                        [CELL_STATE_NOTHING] = COLOR_NOTHING};
 
 cell calculate_cell(int sum, cell c);
@@ -46,6 +59,7 @@ void render_grid(const cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
                  ViewState *view);
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
              SDL_Texture *texture);
+void tick(void *arg);
 
 #define CELL(grid, row, col) (grid)[(row) * GRID_WIDTH + (col)]
 
@@ -59,22 +73,46 @@ int main() {
     if (!init_sdl(&win, &rend, &texture)) return 1;
     if (!init_grid(&grid, &temp_grid)) return 1;
 
-    ViewState view = {1, 0, 0};
-    InputState input = {0, 0, 0};
-    SimState sim = {INITIAL_REFRESH_RATE_MS, 0, true};
-    
-    while (sim.running) {
-        process_input(&view, &sim, &input);
-        update_grid(grid, temp_grid);
-        render_grid(grid, rend, texture, &view);
-
-        SDL_Delay(sim.refresh_rate_ms);
-        sim.generations++;
+    AppState *app = malloc(sizeof(AppState));
+    if(app == NULL) {
+        fprintf(stderr, "Failed to malloc AppState.\n");
+        return 1;
     }
 
-    printf("Generations: %i\n", sim.generations);
-    cleanup(grid, temp_grid, win, rend, texture);
+    app->view = (ViewState){1, 0, 0};
+    app->input = (InputState){0, 0, 0};
+    app->sim = (SimState){INITIAL_REFRESH_RATE_MS, 0, false};
+    app->grid = grid;
+    app->temp_grid = temp_grid;
+    app->win = win;
+    app->rend = rend;
+    app->texture = texture;
+    app->last_tick = SDL_GetTicks();
+    app->time_accumulator = 0;
+
+    emscripten_set_main_loop_arg(tick, app, 0, 1);
     return 0;
+}
+
+void tick(void *arg) {
+    AppState *app = (AppState *)arg;
+
+    process_input(&app->view, &app->sim, &app->input);
+
+    uint32_t now = SDL_GetTicks();
+    uint32_t delta = now - app->last_tick;
+    app->last_tick = now;
+
+    if(!app->sim.paused) {
+        app->time_accumulator += delta;
+        if(app->time_accumulator >= (uint32_t)app->sim.refresh_rate_ms) {
+            update_grid(app->grid, app->temp_grid);
+            app->time_accumulator = 0;
+            app->sim.generations++;
+        }
+    }
+
+    render_grid(app->grid, app->rend, app->texture, &app->view);
 }
 
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture) {
@@ -145,9 +183,7 @@ void process_input(ViewState *view, SimState *sim,
     SDL_Event ev;
 
     while (SDL_PollEvent(&ev) != 0) {
-        if (ev.type == SDL_QUIT) {
-            sim->running = false;
-        } else if (ev.type == SDL_MOUSEBUTTONDOWN) {
+        if (ev.type == SDL_MOUSEBUTTONDOWN) {
             // activate mouse_control
             input->mouse_held = true;
 
@@ -180,6 +216,8 @@ void process_input(ViewState *view, SimState *sim,
                     sim->refresh_rate_ms -= REFRESH_RATE_STEP_MS;
                 }
             }
+        } else if (ev.key.keysym.scancode == SDL_SCANCODE_SPACE) {
+            sim->paused = !sim->paused;
         }
     }
 }
