@@ -39,7 +39,7 @@ cell calculate_cell(int sum, cell c);
 void pan_view(int event_y, int event_x, ViewState *view, InputState *input);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
-void process_input(SDL_Event *ev, ViewState *view, SimState *sim,
+void process_input(ViewState *view, SimState *sim,
                    InputState *input);
 void update_grid(cell *grid, cell *temp_grid);
 void render_grid(cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
@@ -62,10 +62,9 @@ int main() {
     ViewState view = {1, 0, 0};
     InputState input = {0, 0, 0};
     SimState sim = {INITIAL_REFRESH_RATE_MS, 0, true};
-    SDL_Event ev;
-
+    
     while (sim.running) {
-        process_input(&ev, &view, &sim, &input);
+        process_input(&view, &sim, &input);
         update_grid(grid, temp_grid);
         render_grid(grid, rend, texture, &view);
 
@@ -141,40 +140,42 @@ bool init_grid(cell **grid, cell **temp_grid) {
     return true;
 }
 
-void process_input(SDL_Event *ev, ViewState *view, SimState *sim,
+void process_input(ViewState *view, SimState *sim,
                    InputState *input) {
-    while (SDL_PollEvent(ev) != 0) {
-        if (ev->type == SDL_QUIT) {
+    SDL_Event ev;
+
+    while (SDL_PollEvent(&ev) != 0) {
+        if (ev.type == SDL_QUIT) {
             sim->running = false;
-        } else if (ev->type == SDL_MOUSEBUTTONDOWN) {
+        } else if (ev.type == SDL_MOUSEBUTTONDOWN) {
             // activate mouse_control
             input->mouse_held = true;
 
             // store x / y position
-            input->mouse_pos_x = ev->button.x;
-            input->mouse_pos_y = ev->button.y;
-        } else if (ev->type == SDL_MOUSEBUTTONUP) {
+            input->mouse_pos_x = ev.button.x;
+            input->mouse_pos_y = ev.button.y;
+        } else if (ev.type == SDL_MOUSEBUTTONUP) {
             // de-activate mouse_control
             input->mouse_held = false;
-        } else if (ev->type == SDL_MOUSEMOTION && input->mouse_held) {
-            pan_view(ev->motion.y, ev->motion.x, view, input);
-        } else if (ev->type == SDL_MOUSEWHEEL) {
+        } else if (ev.type == SDL_MOUSEMOTION && input->mouse_held) {
+            pan_view(ev.motion.y, ev.motion.x, view, input);
+        } else if (ev.type == SDL_MOUSEWHEEL) {
             // get direction and update zoom accordingly
-            view->zoom += ev->wheel.y;
+            view->zoom += ev.wheel.y;
             if (view->zoom < MIN_ZOOM) view->zoom = MIN_ZOOM;
             if (view->zoom > GRID_HEIGHT / MAX_ZOOM_DIVISOR) {
                 view->zoom = GRID_HEIGHT / MAX_ZOOM_DIVISOR;
             }
 
             // position render area around scroll position
-            pan_view(ev->wheel.y, ev->wheel.x, view, input);
-        } else if (ev->type == SDL_KEYUP) {
+            pan_view(ev.wheel.y, ev.wheel.x, view, input);
+        } else if (ev.type == SDL_KEYUP) {
             // if key = arrow up / arrow down, adjust delay value
-            if (ev->key.keysym.scancode == SDL_SCANCODE_UP) {
+            if (ev.key.keysym.scancode == SDL_SCANCODE_UP) {
                 sim->refresh_rate_ms += REFRESH_RATE_STEP_MS;
                 if (sim->refresh_rate_ms > MAX_REFRESH_RATE_MS)
                     sim->refresh_rate_ms = MAX_REFRESH_RATE_MS;
-            } else if (ev->key.keysym.scancode == SDL_SCANCODE_DOWN) {
+            } else if (ev.key.keysym.scancode == SDL_SCANCODE_DOWN) {
                 if (sim->refresh_rate_ms > MIN_REFRESH_RATE_MS) {
                     sim->refresh_rate_ms -= REFRESH_RATE_STEP_MS;
                 }
