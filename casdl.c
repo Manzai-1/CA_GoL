@@ -203,8 +203,14 @@ void process_input(ViewState *view, SimState *sim,
                 view->zoom = GRID_HEIGHT / MAX_ZOOM_DIVISOR;
             }
 
+            //re-clamp position for new zoom level
+            int max_y = GRID_HEIGHT - (GRID_HEIGHT / view->zoom);
+            int max_x = GRID_WIDTH - (GRID_WIDTH / view->zoom);
+            if(view->grid_pos_y > max_y) view->grid_pos_y = max_y;
+            if(view->grid_pos_x > max_x) view->grid_pos_x = max_x;
+
             // position render area around scroll position
-            pan_view(ev.wheel.y, ev.wheel.x, view, input);
+            // pan_view(ev.wheel.y, ev.wheel.x, view, input);
         } else if (ev.type == SDL_KEYUP) {
             // if key = arrow up / arrow down, adjust delay value
             if (ev.key.keysym.scancode == SDL_SCANCODE_UP) {
