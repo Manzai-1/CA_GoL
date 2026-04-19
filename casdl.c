@@ -130,7 +130,7 @@ bool init_grid(cell **grid, cell **temp_grid) {
     srand(time(0));
     for (int i = 0; i < GRID_HEIGHT; i++) {
         for (int j = 0; j < GRID_WIDTH; j++) {
-            int value = rand() % INITIAL_ALIVE_DENOMINATOR;
+            int value = rand() % INITIAL_ALIVE_PROBABILITY;
             CELL(*grid, i, j).alive = (value == 0);
             CELL(*grid, i, j).state = (CELL(*grid, i, j).alive)
                                           ? CELL_STATE_BIRTH
@@ -215,8 +215,8 @@ void render_grid(cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
 
     // stores initial and previous row/col/color to avoid redundant lookups when
     // zoomed in
-    int last_row = 0;
-    int last_col = 0;
+    int last_row = view->grid_pos_y;
+    int last_col = view->grid_pos_x;
     uint32_t color =
         CELL_COLORS[CELL(grid, view->grid_pos_y, view->grid_pos_x).state];
 

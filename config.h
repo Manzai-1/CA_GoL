@@ -15,7 +15,7 @@
 #define REFRESH_RATE_STEP_MS   10
 #define MIN_REFRESH_RATE_MS    10
 #define MAX_REFRESH_RATE_MS    1000
-#define INITIAL_ALIVE_DENOMINATOR 3
+#define INITIAL_ALIVE_PROBABILITY 3
 #define BYTES_PER_PIXEL        4
 
 typedef enum {

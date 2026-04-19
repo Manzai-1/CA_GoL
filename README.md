@@ -8,3 +8,9 @@ States:
 2. Born
 3. Death
 4. Nothingness
+
+
+# Compile with:
+```
+gcc casdl.c -lSDL2main -lSDL2 -Wall -Wextra -o gol
+```
