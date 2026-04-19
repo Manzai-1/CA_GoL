@@ -2,11 +2,11 @@
 #define CONFIG_H
 
 #ifndef GRID_HEIGHT
-#define GRID_HEIGHT 1024
+#define GRID_HEIGHT 800
 #endif
 
 #ifndef GRID_WIDTH
-#define GRID_WIDTH 2048
+#define GRID_WIDTH 800
 #endif
 
 #define MIN_ZOOM               1
