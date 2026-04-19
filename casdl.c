@@ -42,7 +42,7 @@ bool init_grid(cell **grid, cell **temp_grid);
 void process_input(ViewState *view, SimState *sim,
                    InputState *input);
 void update_grid(cell *grid, cell *temp_grid);
-void render_grid(cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
+void render_grid(const cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
                  ViewState *view);
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
              SDL_Texture *texture);
@@ -209,7 +209,7 @@ void update_grid(cell *grid, cell *temp_grid) {
     memcpy(grid, temp_grid, GRID_HEIGHT * GRID_WIDTH * sizeof(cell));
 }
 
-void render_grid(cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
+void render_grid(const cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
                  ViewState *view) {
     uint32_t *pixels;
     int pitch = GRID_WIDTH * BYTES_PER_PIXEL;
