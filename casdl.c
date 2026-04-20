@@ -364,3 +364,8 @@ EMSCRIPTEN_KEEPALIVE
 int js_get_paused(void) {
     return app->sim.paused ? 1 : 0;
 }
+
+EMSCRIPTEN_KEEPALIVE
+int js_get_generations(void) {
+    return app->sim.generations;
+}

@@ -2,7 +2,7 @@
 CC = emcc
 CFLAGS = -O2 -Wall -Wextra
 EMFLAGS = -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 \
-	-s EXPORTED_FUNCTIONS='["_main", "_js_pan", "_js_zoom", "_js_get_min_speed", "_js_get_max_speed", "_js_set_speed", "_js_toggle_pause", "_js_get_paused"]' \
+	-s EXPORTED_FUNCTIONS='["_main", "_js_pan", "_js_zoom", "_js_get_min_speed", "_js_get_max_speed", "_js_set_speed", "_js_toggle_pause", "_js_get_paused", "_js_get_generations"]' \
 	-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]' \
 	--shell-file web/shell.html
 
