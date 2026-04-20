@@ -11,6 +11,12 @@ Module.onRuntimeInitialized = function () {
 
   lucide.createIcons();
 
+  const genCounter = document.getElementById('gen-counter');
+  setInterval(() => {
+    const count = Module.ccall('js_get_generations', 'number', [], []);
+    genCounter.textContent = `GEN ${count.toString().padStart(6, '0')}`;
+  }, 100);
+
   slider.addEventListener('input', () => {
     Module.ccall('js_set_speed', null, ['number'], [parseInt(slider.value)]);
     document.getElementById('speed-label').textContent = `Speed: ${slider.value}ms`;

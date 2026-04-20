@@ -117,6 +117,18 @@ button svg {
   color: #666;
 }
 
+#gen-counter {
+  position: fixed;
+  top: 1.5rem;
+  left: 2rem;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #fff;
+  pointer-events: none;
+  z-index: 10;
+  background-color: black;
+}
+
 .speed-labels {
   display: flex;
   justify-content: space-between;
