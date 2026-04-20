@@ -4,6 +4,10 @@
   padding: 0;
 }
 
+:root {
+  --controls-padding-x: 3rem;
+}
+
 html, body {
   background: #0a0a0a;
   color: #e8e8e8;
@@ -29,11 +33,10 @@ body {
   flex: 0 0 auto;
   background: #141414;
   border-top: 1px solid #222;
-  display: flex;
-  justify-content: center;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  padding: 12px 24px;
-  gap: 80px;
+  padding: 1rem var(--controls-padding-x);
 }
 
 .zone {
@@ -44,10 +47,11 @@ body {
 .zone-left {
   flex-direction: column;
   gap: 4px;
+  justify-self: start;
 }
 
 .zone-center {
-  flex: 0 0 auto;
+  justify-self: center;
 }
 
 .zone-right {
@@ -55,6 +59,8 @@ body {
   align-items: stretch;
   gap: 6px;
   min-width: 200px;
+  max-width: 240px;
+  justify-self: end;
 }
 
 button {
