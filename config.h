@@ -2,19 +2,19 @@
 #define CONFIG_H
 
 #ifndef GRID_HEIGHT
-#define GRID_HEIGHT 1024
+#define GRID_HEIGHT 800
 #endif
 
 #ifndef GRID_WIDTH
-#define GRID_WIDTH 2048
+#define GRID_WIDTH 800
 #endif
 
 #define MIN_ZOOM               1
 #define MAX_ZOOM_DIVISOR       4
-#define INITIAL_REFRESH_RATE_MS 100
+#define INITIAL_REFRESH_RATE_MS 1000
 #define REFRESH_RATE_STEP_MS   10
 #define MIN_REFRESH_RATE_MS    10
-#define MAX_REFRESH_RATE_MS    1000
+#define MAX_REFRESH_RATE_MS    2000
 #define INITIAL_ALIVE_PROBABILITY 3
 #define BYTES_PER_PIXEL        4
 
