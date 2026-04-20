@@ -45,8 +45,9 @@ static AppState *app;
 cell calculate_cell(int sum, cell c);
 void pan_view(int dy, int dx, ViewState *view);
 void zoom_view(int delta, ViewState *view);
-void js_set_speed(int ms);
+void set_sim_speed(uint32_t ms, SimState *sim);
 void toggle_pause(SimState *sim);
+
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(ViewState *view, SimState *sim);
