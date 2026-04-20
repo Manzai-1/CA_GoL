@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Game of Life</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="canvas" oncontextmenu="event.preventDefault()" tabindex="1"></canvas>
+  <div id="gen-counter" class="mono">GEN 000000</div>
+  <div id="controls">
+    <div class="zone zone-left">
+      <button id="zoom-in" aria-label="Zoom in"><i data-lucide="plus"></i></button>
+      <span class="label">ZOOM</span>
+      <button id="zoom-out" aria-label="Zoom out"><i data-lucide="minus"></i></button>
+    </div>
+    <div class="zone zone-center">
+      <button id="play-pause" aria-label="Pause"><i data-lucide="pause"></i></button>
+    </div>
+    <div class="zone zone-right">
+      <div class="speed-labels">
+        <span id="speed-min" class="mono"></span>
+        <span id="speed-label" class="mono">Speed: --ms</span>
+        <span id="speed-max" class="mono"></span>
+      </div>
+      <input type="range" id="speed-slider" aria-label="Simulation speed">
+    </div>
+  </div>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <script>
+    var Module = {
+      canvas: (function() { return document.getElementById('canvas'); })()
+    };
+  </script>
+  <script src="controls.js"></script>
+  {{{ SCRIPT }}}
+</body>
+</html>
