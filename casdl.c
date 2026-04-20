@@ -46,6 +46,7 @@ cell calculate_cell(int sum, cell c);
 void pan_view(int dy, int dx, ViewState *view);
 void zoom_view(int delta, ViewState *view);
 void js_set_speed(int ms);
+void toggle_pause(SimState *sim);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(ViewState *view, SimState *sim);
@@ -179,7 +180,7 @@ void process_input(ViewState *view, SimState *sim) {
         } else if (ev.type == SDL_MOUSEWHEEL) {
             zoom_view(ev.wheel.y, view);
         } else if (ev.type == SDL_KEYUP && ev.key.keysym.scancode == SDL_SCANCODE_SPACE) {
-            sim->paused = !sim->paused;
+            toggle_pause(sim);
         } 
     }
 }
@@ -314,6 +315,10 @@ void set_sim_speed(uint32_t ms, SimState *sim) {
     sim->refresh_rate_ms = ms;
 }
 
+void toggle_pause(SimState *sim) {
+    sim->paused = !sim->paused;
+}
+
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
              SDL_Texture *texture) {
     SDL_DestroyTexture(texture);
@@ -347,4 +352,14 @@ int js_get_min_speed(void) {
 EMSCRIPTEN_KEEPALIVE
 int js_get_max_speed(void) {
     return MAX_REFRESH_RATE_MS;
+}
+
+EMSCRIPTEN_KEEPALIVE
+void js_toggle_pause(void) {
+    toggle_pause(&app->sim);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int js_get_paused(void) {
+    return app->sim.paused ? 1 : 0;
 }
