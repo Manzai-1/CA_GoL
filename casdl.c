@@ -45,6 +45,7 @@ static AppState *app;
 cell calculate_cell(int sum, cell c);
 void pan_view(int dy, int dx, ViewState *view);
 void zoom_view(int delta, ViewState *view);
+void js_set_speed(int ms);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(ViewState *view, SimState *sim);
@@ -177,20 +178,9 @@ void process_input(ViewState *view, SimState *sim) {
             pan_view(-ev.motion.yrel, -ev.motion.xrel, view);
         } else if (ev.type == SDL_MOUSEWHEEL) {
             zoom_view(ev.wheel.y, view);
-        } else if (ev.type == SDL_KEYUP) {
-            // if key = arrow up / arrow down, adjust delay value
-            if (ev.key.keysym.scancode == SDL_SCANCODE_UP) {
-                sim->refresh_rate_ms += REFRESH_RATE_STEP_MS;
-                if (sim->refresh_rate_ms > MAX_REFRESH_RATE_MS)
-                    sim->refresh_rate_ms = MAX_REFRESH_RATE_MS;
-            } else if (ev.key.keysym.scancode == SDL_SCANCODE_DOWN) {
-                if (sim->refresh_rate_ms > MIN_REFRESH_RATE_MS) {
-                    sim->refresh_rate_ms -= REFRESH_RATE_STEP_MS;
-                }
-            }
-        } else if (ev.key.keysym.scancode == SDL_SCANCODE_SPACE) {
+        } else if (ev.type == SDL_KEYUP && ev.key.keysym.scancode == SDL_SCANCODE_SPACE) {
             sim->paused = !sim->paused;
-        }
+        } 
     }
 }
 
@@ -318,6 +308,12 @@ void zoom_view(int delta, ViewState *view) {
     if(view->grid_pos_x > max_x) view->grid_pos_x = max_x;
 }
 
+void set_sim_speed(uint32_t ms, SimState *sim) {
+    if(ms < MIN_REFRESH_RATE_MS) ms = MIN_REFRESH_RATE_MS;
+    if(ms > MAX_REFRESH_RATE_MS) ms = MAX_REFRESH_RATE_MS;
+    sim->refresh_rate_ms = ms;
+}
+
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
              SDL_Texture *texture) {
     SDL_DestroyTexture(texture);
@@ -336,4 +332,19 @@ void js_pan(int dy, int dx) {
 EMSCRIPTEN_KEEPALIVE
 void js_zoom(int delta) {
     zoom_view(delta, &app->view);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void js_set_speed(int ms) {
+    set_sim_speed((uint32_t)ms, &app->sim);
+}
+
+EMSCRIPTEN_KEEPALIVE
+int js_get_min_speed(void) {
+    return MIN_REFRESH_RATE_MS;
+}
+
+EMSCRIPTEN_KEEPALIVE
+int js_get_max_speed(void) {
+    return MAX_REFRESH_RATE_MS;
 }
