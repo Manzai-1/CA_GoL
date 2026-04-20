@@ -46,20 +46,20 @@ body {
 
 .zone-left {
   flex-direction: column;
-  gap: 4px;
+  gap: 0.5rem;
   justify-self: start;
 }
 
 .zone-center {
-  justify-self: center;
-}
-
-.zone-right {
   flex-direction: column;
   align-items: stretch;
   gap: 6px;
   min-width: 200px;
   max-width: 240px;
+  justify-self: center;
+}
+
+.zone-right {
   justify-self: end;
 }
 
