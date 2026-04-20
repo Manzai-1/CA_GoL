@@ -19,12 +19,6 @@ typedef struct {
 } ViewState;
 
 typedef struct {
-    bool mouse_held;
-    int mouse_pos_y;
-    int mouse_pos_x;
-} InputState;
-
-typedef struct {
     int refresh_rate_ms;
     int generations;
     bool paused;
@@ -33,7 +27,6 @@ typedef struct {
 typedef struct {
     ViewState view;
     SimState sim;
-    InputState input;
     cell *grid;
     cell *temp_grid;
     SDL_Window *win;
@@ -47,18 +40,16 @@ static const uint32_t CELL_COLORS[] = {[CELL_STATE_BIRTH]   = COLOR_BIRTH,
                                        [CELL_STATE_STASIS]  = COLOR_STASIS,
                                        [CELL_STATE_DEATH]   = COLOR_DEATH,
                                        [CELL_STATE_NOTHING] = COLOR_NOTHING};
+static AppState *app;
 
 cell calculate_cell(int sum, cell c);
-void pan_view(int event_y, int event_x, ViewState *view, InputState *input);
+void pan_view(int dy, int dx, ViewState *view);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
-void process_input(ViewState *view, SimState *sim,
-                   InputState *input);
+void process_input(ViewState *view, SimState *sim);
 void update_grid(cell *grid, cell *temp_grid);
-void render_grid(const cell *grid, SDL_Renderer *rend, SDL_Texture *texture,
-                 ViewState *view);
-void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
-             SDL_Texture *texture);
+void render_grid(const cell *grid, SDL_Renderer *rend, SDL_Texture *texture, ViewState *view);
+void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend, SDL_Texture *texture);
 void tick(void *arg);
 
 #define CELL(grid, row, col) (grid)[(row) * GRID_WIDTH + (col)]
@@ -73,14 +64,13 @@ int main() {
     if (!init_sdl(&win, &rend, &texture)) return 1;
     if (!init_grid(&grid, &temp_grid)) return 1;
 
-    AppState *app = malloc(sizeof(AppState));
+    app = malloc(sizeof(AppState));
     if(app == NULL) {
         fprintf(stderr, "Failed to malloc AppState.\n");
         return 1;
     }
 
     app->view = (ViewState){1, 0, 0};
-    app->input = (InputState){0, 0, 0};
     app->sim = (SimState){INITIAL_REFRESH_RATE_MS, 0, false};
     app->grid = grid;
     app->temp_grid = temp_grid;
@@ -97,7 +87,7 @@ int main() {
 void tick(void *arg) {
     AppState *app = (AppState *)arg;
 
-    process_input(&app->view, &app->sim, &app->input);
+    process_input(&app->view, &app->sim);
 
     uint32_t now = SDL_GetTicks();
     uint32_t delta = now - app->last_tick;
@@ -178,23 +168,12 @@ bool init_grid(cell **grid, cell **temp_grid) {
     return true;
 }
 
-void process_input(ViewState *view, SimState *sim,
-                   InputState *input) {
+void process_input(ViewState *view, SimState *sim) {
     SDL_Event ev;
 
     while (SDL_PollEvent(&ev) != 0) {
-        if (ev.type == SDL_MOUSEBUTTONDOWN) {
-            // activate mouse_control
-            input->mouse_held = true;
-
-            // store x / y position
-            input->mouse_pos_x = ev.button.x;
-            input->mouse_pos_y = ev.button.y;
-        } else if (ev.type == SDL_MOUSEBUTTONUP) {
-            // de-activate mouse_control
-            input->mouse_held = false;
-        } else if (ev.type == SDL_MOUSEMOTION && input->mouse_held) {
-            pan_view(ev.motion.y, ev.motion.x, view, input);
+        if (ev.type == SDL_MOUSEMOTION && (ev.motion.state & SDL_BUTTON_LMASK)) {
+            pan_view(-ev.motion.yrel, -ev.motion.xrel, view);
         } else if (ev.type == SDL_MOUSEWHEEL) {
             // get direction and update zoom accordingly
             view->zoom += ev.wheel.y;
@@ -315,25 +294,20 @@ cell calculate_cell(int sum, cell c) {
     }
 }
 
-void pan_view(int event_y, int event_x, ViewState *view, InputState *input) {
-    int new_y = view->grid_pos_y;
-    int new_x = view->grid_pos_x;
+void pan_view(int dy, int dx, ViewState *view) {
+    int new_y = view->grid_pos_y + dy;
+    int new_x = view->grid_pos_x + dx;
 
-    new_y += (event_y - input->mouse_pos_y);
-    new_x += (event_x - input->mouse_pos_x);
+    int max_y = GRID_HEIGHT - (GRID_HEIGHT / view->zoom);
+    int max_x = GRID_WIDTH - (GRID_WIDTH / view->zoom);
 
-    if (new_y >= 0 && (new_y + (GRID_HEIGHT / view->zoom)) <=
-                          GRID_HEIGHT)  // CAP rendering area at GRID_HEIGHT
-    {
-        view->grid_pos_y = new_y;
-        input->mouse_pos_y = event_y;
-    }
-    if (new_x >= 0 && (new_x + (GRID_WIDTH / view->zoom)) <=
-                          GRID_WIDTH - 1)  // CAP rendering area at GRID_WIDTH
-    {
-        view->grid_pos_x = new_x;
-        input->mouse_pos_x = event_x;
-    }
+    if(new_y < 0) new_y = 0;
+    if(new_x < 0) new_x = 0;
+    if(new_y > max_y) new_y = max_y;
+    if(new_x > max_x) new_x = max_x;
+
+    view->grid_pos_y = new_y;
+    view->grid_pos_x = new_x;
 }
 
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
@@ -344,4 +318,9 @@ void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
     SDL_Quit();
     free(grid);
     free(temp_grid);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void js_pan(int dy, int dx) {
+    pan_view(dy, dx, &app->view);
 }
