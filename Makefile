@@ -2,7 +2,7 @@
 CC = emcc
 CFLAGS = -O2 -Wall -Wextra
 EMFLAGS = -s USE_SDL=2 -s ALLOW_MEMORY_GROWTH=1 \
-	-s EXPORTED_FUNCTIONS='["_main", "_js_pan"]' \
+	-s EXPORTED_FUNCTIONS='["_main", "_js_pan", "_js_zoom"]' \
 	-s EXPORTED_RUNTIME_METHODS='["ccall", "cwrap"]'
 
 # Paths

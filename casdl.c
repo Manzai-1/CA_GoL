@@ -44,6 +44,7 @@ static AppState *app;
 
 cell calculate_cell(int sum, cell c);
 void pan_view(int dy, int dx, ViewState *view);
+void zoom_view(int delta, ViewState *view);
 bool init_sdl(SDL_Window **win, SDL_Renderer **rend, SDL_Texture **texture);
 bool init_grid(cell **grid, cell **temp_grid);
 void process_input(ViewState *view, SimState *sim);
@@ -175,21 +176,7 @@ void process_input(ViewState *view, SimState *sim) {
         if (ev.type == SDL_MOUSEMOTION && (ev.motion.state & SDL_BUTTON_LMASK)) {
             pan_view(-ev.motion.yrel, -ev.motion.xrel, view);
         } else if (ev.type == SDL_MOUSEWHEEL) {
-            // get direction and update zoom accordingly
-            view->zoom += ev.wheel.y;
-            if (view->zoom < MIN_ZOOM) view->zoom = MIN_ZOOM;
-            if (view->zoom > GRID_HEIGHT / MAX_ZOOM_DIVISOR) {
-                view->zoom = GRID_HEIGHT / MAX_ZOOM_DIVISOR;
-            }
-
-            //re-clamp position for new zoom level
-            int max_y = GRID_HEIGHT - (GRID_HEIGHT / view->zoom);
-            int max_x = GRID_WIDTH - (GRID_WIDTH / view->zoom);
-            if(view->grid_pos_y > max_y) view->grid_pos_y = max_y;
-            if(view->grid_pos_x > max_x) view->grid_pos_x = max_x;
-
-            // position render area around scroll position
-            // pan_view(ev.wheel.y, ev.wheel.x, view, input);
+            zoom_view(ev.wheel.y, view);
         } else if (ev.type == SDL_KEYUP) {
             // if key = arrow up / arrow down, adjust delay value
             if (ev.key.keysym.scancode == SDL_SCANCODE_UP) {
@@ -310,6 +297,27 @@ void pan_view(int dy, int dx, ViewState *view) {
     view->grid_pos_x = new_x;
 }
 
+void zoom_view(int delta, ViewState *view) {
+    int anchor_y = view->grid_pos_y + (GRID_HEIGHT / view->zoom) / 2;
+    int anchor_x = view->grid_pos_x + (GRID_WIDTH / view->zoom) / 2;
+
+    view->zoom += delta;
+    if(view->zoom < MIN_ZOOM) view->zoom = MIN_ZOOM;
+    if(view->zoom > GRID_HEIGHT / MAX_ZOOM_DIVISOR) {
+        view->zoom = GRID_HEIGHT / MAX_ZOOM_DIVISOR;
+    }
+
+    view->grid_pos_y = anchor_y - (GRID_HEIGHT / view->zoom) / 2;
+    view->grid_pos_x = anchor_x - (GRID_WIDTH / view->zoom) / 2;
+
+    int max_y = GRID_HEIGHT - (GRID_HEIGHT / view->zoom);
+    int max_x = GRID_WIDTH - (GRID_WIDTH / view->zoom);
+    if(view->grid_pos_y < 0) view->grid_pos_y = 0;
+    if(view->grid_pos_x < 0) view->grid_pos_x = 0;
+    if(view->grid_pos_y > max_y) view->grid_pos_y = max_y;
+    if(view->grid_pos_x > max_x) view->grid_pos_x = max_x;
+}
+
 void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
              SDL_Texture *texture) {
     SDL_DestroyTexture(texture);
@@ -323,4 +331,9 @@ void cleanup(cell *grid, cell *temp_grid, SDL_Window *win, SDL_Renderer *rend,
 EMSCRIPTEN_KEEPALIVE
 void js_pan(int dy, int dx) {
     pan_view(dy, dx, &app->view);
+}
+
+EMSCRIPTEN_KEEPALIVE
+void js_zoom(int delta) {
+    zoom_view(delta, &app->view);
 }
