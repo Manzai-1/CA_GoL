@@ -13,4 +13,4 @@ States:
 # Compile with:
 ```
 gcc casdl.c -lSDL2main -lSDL2 -Wall -Wextra -o gol
-```
+``` 
