@@ -5,7 +5,7 @@
 }
 
 :root {
-  --controls-padding-x: 3rem;
+  --controls-padding-x: 0.75rem;
 }
 
 html, body {
@@ -89,8 +89,8 @@ button svg {
 }
 
 #play-pause {
-  width: 64px;
-  height: 64px;
+  width: 54px;
+  height: 54px;
   border-radius: 50%;
   background: #e8e8e8;
   border: none;
