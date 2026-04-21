@@ -23,13 +23,13 @@ UI buttons call exported C functions via `Module.ccall`.
 
 ## Design notes
 
-**Fixed timestep, no catch-up.** Rendering runs every animation frame; generations advance on a user-controlled ms interval via an accumulator that resets rather than decrements. Catching up after a lag spike would make the display jump.
+**Fixed timestep, no catch-up.** Rendering runs every animation frame, generations advance on a user-controlled ms interval via an accumulator. The accumulator absorbs the mismatch between browser refresh rate and simulation speed, and resets on each generation rather than decrementing. Skipping generations to catch up would negate the purpose of this simulation. 
 
 **Double-buffered grid.** Cells compute into a secondary buffer, then `memcpy` back. Updating in place corrupts neighbor reads.
 
 **Direct pixel-buffer rendering.** Per-cell `SDL_RenderDrawPoint` doesn't scale. The grid is written as raw ARGB into a locked texture in one pass and drawn as a single textured quad.
 
-**Single `AppState` struct.** Grid pointers, SDL handles, view, sim config, and timing live in one heap-allocated struct passed to `emscripten_set_main_loop_arg`. A file-scope pointer exists only for JS-exported functions, which can't receive runtime arguments.
+**Single `AppState` struct.** Grid pointers, SDL handles, view & sim configs, and timing live in one heap-allocated struct passed to `emscripten_set_main_loop_arg`. A file-scope pointer exists only for JS-exported functions, which can't receive runtime arguments.
 
 ## Build
 
@@ -60,9 +60,11 @@ web/
 ## Limitations
 
 - Grid size fixed at compile time.
-- No pattern loader — RLE support would be next.
+- No pattern loader.
 - Integer division in zoom centering causes +-1 cell drift per step.
-- Render cost is O(W × H) regardless of alive-cell count. Can be improved.
+- Simulation complexity is O(W*H), every cell checks its 3x3 neighborhood in each generation. Caching techniques such as Hashlife could be used to optimize, but that is out of scope for this project.
+- Grid edges dont wrap, cells at boundary have fewer than 8 neighbors due to this choice.
+- Single threaded, the update loop could easily be optimized with parallelization. This is out of scope for this project considering that WASM threads require advanced configuration of SharedArrayBuffer.
 
 ## License
 
